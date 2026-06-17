@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Супер-Честная Рулетка</title>
+    <style>
+        body {
+            background-color: #1a1a1a;
+            color: #ffffff;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+            overflow: hidden;
+        }
+
+        h1 {
+            margin-bottom: 30px;
+            text-shadow: 0 0 10px rgba(255, 255, 255, 0.2);
+        }
+
+        /* Контейнер рулетки */
+        .roulette-container {
+            position: relative;
+            width: 600px;
+            height: 130px;
+            background-color: #222;
+            border: 4px solid #333;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+        }
+
+        /* Красный маркер по центру */
+        .pointer {
+            position: absolute;
+            top: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 4px;
+            height: 100%;
+            background-color: #ff3333;
+            z-index: 10;
+            box-shadow: 0 0 10px #ff3333;
+        }
+
+        /* Лента с карточками */
+        .reel {
+            display: flex;
+            align-items: center;
+            position: absolute;
+            left: 0;
+            top: 15px;
+            transform: translateX(0px);
+            /* Плавное замедление (эффект физики) */
+            transition: transform 5s cubic-bezier(0.1, 0.8, 0.1, 1); 
+            will-change: transform;
+        }
+
+        /* Оформление карточки */
+        .card {
+            width: 130px;
+            height: 90px;
+            margin: 0 5px;
+            background: linear-gradient(135deg, #3a3d40, #181717);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            font-weight: bold;
+            font-size: 13px;
+            box-sizing: border-box;
+            border: 2px solid #444;
+            flex-shrink: 0;
+            text-transform: uppercase;
+            padding: 5px;
+        }
+
+        /* Выделение карточки Кашина цветом, когда она выпадает */
+        .card.target-style {
+            background: linear-gradient(135deg, #d32f2f, #9a0007);
+            border-color: #ff6659;
+            box-shadow: inset 0 0 15px rgba(255,255,255,0.2);
+        }
+
+        /* Кнопка */
+        button {
+            margin-top: 40px;
+            padding: 15px 40px;
+            font-size: 18px;
+            font-weight: bold;
+            color: #fff;
+            background: linear-gradient(135deg, #ff9800, #f57c00);
+            border: none;
+            border-radius: 30px;
+            cursor: pointer;
+            box-shadow: 0 5px 15px rgba(245, 124, 0, 0.4);
+            transition: 0.2s ease;
+        }
+
+        button:hover {
+            transform: scale(1.05);
+            box-shadow: 0 8px 20px rgba(245, 124, 0, 0.6);
+        }
+
+        button:active {
+            transform: scale(0.95);
+        }
+
+        button:disabled {
+            background: #555;
+            box-shadow: none;
+            cursor: not-allowed;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Судьбоносный выбор</h1>
+
+    <div class="roulette-container">
+        <div class="pointer"></div>
+        <div class="reel" id="reel"></div>
+    </div>
+
+    <button id="spinBtn" onclick="spin()">Испытать удачу!</button>
+
+    <script>
+        const options = ["кашин выбывает", "саня выбывает", "победа выбывает", "юла выбывает"];
+        const reel = document.getElementById('reel');
+        const spinBtn = document.getElementById('spinBtn');
+        
+        const cardWidth = 140; // 130px ширина + 10px отступы (по 5px с каждой стороны)
+        const totalCards = 40; // Всего карточек на ленте
+        const targetIndex = 28; // На каком индексе будет стоять победный "Кашин"
+
+        function generateReel() {
+            reel.innerHTML = '';
+            // Сбрасываем анимацию
+            reel.style.transition = 'none';
+            reel.style.transform = 'translateX(0px)';
+
+            for (let i = 0; i < totalCards; i++) {
+                const card = document.createElement('div');
+                card.className = 'card';
+                
+                // Если это наша целевая карточка, то это ВСЕГДА Кашин
+                if (i === targetIndex) {
+                    card.innerText = "кашин выбывает";
+                    card.classList.add('target-style'); // Подсветим ее красивым красным цветом
+                } else {
+                    // Все остальные карточки заполняются случайным образом из списка
+                    const randomName = options[Math.floor(Math.random() * options.length)];
+                    card.innerText = randomName;
+                }
+                reel.appendChild(card);
+            }
+        }
+
+        function spin() {
+            spinBtn.disabled = true;
+            generateReel();
+
+            // Даем браузеру время применить стили перед началом анимации
+            setTimeout(() => {
+                reel.style.transition = 'transform 5s cubic-bezier(0.1, 0.8, 0.1, 1)';
+
+                // Ширина половины контейнера рулетки (чтобы карточка встала ровно по центру стрелки)
+                const centerOffset = 300; 
+
+                // Рассчитываем точное смещение до центра целевой карточки
+                const targetPosition = (targetIndex * cardWidth) + (cardWidth / 2);
+
+                // Добавляем микро-рандом внутри самой карточки (±35 пикселей), 
+                // чтобы стрелка останавливалась в разных частях слова "Кашин", создавая эффект честности
+                const randomMicroOffset = (Math.random() * 70) - 35;
+
+                const finalTranslate = -(targetPosition - centerOffset + randomMicroOffset);
+
+                // Запускаем прокрутку
+                reel.style.transform = `translateX(${finalTranslate}px)`;
+            }, 50);
+
+            // Включаем кнопку обратно через 5.5 секунд
+            setTimeout(() => {
+                spinBtn.disabled = false;
+            }, 5500);
+        }
+
+        // Генерируем ленту при первой загрузке страницы
+        generateReel();
+    </script>
+</body>
+</html>
